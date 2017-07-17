@@ -72,7 +72,8 @@ def img2vector(filename):
 def handwriting():
     hwlabels = []
     trainingFileList = os.listdir('trainingDigits/')
-    m = len(trainingFileList)
+    # m = len(trainingFileList)
+    m = 1000
     trainingMat = zeros((m, 1024))
     for i in range(m):
         fileNameStr = trainingFileList[i]
@@ -82,7 +83,8 @@ def handwriting():
         trainingMat[i, :] = img2vector('trainingDigits/%s' % fileNameStr)
     testFileList = os.listdir('testDigits')
     errCount = 0
-    mTest = len(testFileList)
+    # mTest = len(testFileList)
+    mTest = 500
     for i in range(mTest):
         fileNameStr = testFileList[i]
         filestr = fileNameStr.split('.')[0]
@@ -93,3 +95,11 @@ def handwriting():
         if (result != classNumStr): errCount += 1
     print "\nerror %d" % errCount
     print "rate %f" % (errCount/float(mTest))
+
+
+# handwriting()
+# m=1934, mTest=946
+    # k=2, error 13, rate 0.013742
+    # k=3, error 11, rate 0.011628
+# m=1000, mTest=500
+    # k=3, error 4, rate 0.008
