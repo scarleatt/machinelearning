@@ -1,4 +1,5 @@
-from numpy import *;
+from numpy import *
+import os
 import operator
 
 def file2matrix(filename):
@@ -59,4 +60,38 @@ def datingClassTest():
         if (result != datalabels[i]): errCount += 1
     print "The total error rate is %f " % (errCount / float(numTestVecs))
 
-datingClassTest()
+def img2vector(filename):
+    returnVect = zeros((1,1024))
+    fr = open(filename)
+    for i in range(32):
+        lineStr = fr.readline()
+        for j in range(32):
+            returnVect[0,32*i+j] = int(lineStr[j])
+    return returnVect
+
+def handwriting():
+    hwlabels = []
+    trainingFileList = os.listdir('trainingDigits/')
+    m = len(trainingFileList)
+    trainingMat = zeros((m, 1024))
+    for i in range(m):
+        fileNameStr = trainingFileList[i]
+        filestr = fileNameStr.split('.')[0]
+        classNumStr = int(filestr.split('_')[0])
+        hwlabels.append(classNumStr)
+        trainingMat[i, :] = img2vector('trainingDigits/%s' % fileNameStr)
+    testFileList = os.listdir('testDigits')
+    errCount = 0
+    mTest = len(testFileList)
+    for i in range(mTest):
+        fileNameStr = testFileList[i]
+        filestr = fileNameStr.split('.')[0]
+        classNumStr = int(filestr.split('_')[0])
+        vectorUnderTest = img2vector('testDigits/%s' % fileNameStr)
+        result = classify0(vectorUnderTest, trainingMat, hwlabels, 3)
+        print "the classifier came back with: %d, the real answer is: %d" % (result, classNumStr)
+        if (result != classNumStr): errCount += 1
+    print "\nerror %d" % errCount
+    print "rate %f" % (errCount/float(mTest))
+
+handwriting()
