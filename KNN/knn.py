@@ -93,5 +93,3 @@ def handwriting():
         if (result != classNumStr): errCount += 1
     print "\nerror %d" % errCount
     print "rate %f" % (errCount/float(mTest))
-
-handwriting()
