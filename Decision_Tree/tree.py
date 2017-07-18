@@ -1,4 +1,6 @@
 from math import *
+from treePlotter import *
+from numpy import *
 import operator
 
 def calcShannoEnt(dataSet):
@@ -78,11 +80,33 @@ def createTree(dataSet, labels):
         myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)
     return myTree
 
-dataSet, labels = createDataSet()
-print createTree(dataSet, labels)
+def classify(inputTree, featlabels, testVec):
+    firstStr = inputTree.keys()[0]
+    secondDict = inputTree[firstStr]
+    featIndex = featlabels.index(firstStr)
+    print featlabels, featIndex
+    for key in secondDict.keys():
+        print key
+        if testVec[featIndex] == key:
+            if type(secondDict[key]).__name__ == 'dict':
+                classLabel = classify(secondDict[key], featlabels, testVec)
+            else: classLabel = secondDict[key]
+    return classLabel
 
-# data = [example[0] for example in dataSet]
-# print data
-# print set(data)
-# print splitDataSet(dataSet, 0, 1)
+def storeTree(inputTree, filename):
+    import pickle
+    fw = open(filename, 'w')
+    pickle.dump(inputTree, fw)
+    fw.close()
 
+def grapTree(filename):
+    import pickle
+    fr = open(filename)
+    return pickle.load(fr)
+
+# fr = open('lenses.txt')
+# labels = ['age', 'prescript', 'astigmatic', 'tearRate']
+# lenses = [inst.strip().split('\t') for inst in fr.readlines()]
+# print lenses
+# myTree = createTree(lenses, labels)
+# print myTree
