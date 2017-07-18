@@ -1,5 +1,4 @@
 from math import *
-from treePlotter import *
 from numpy import *
 import operator
 
@@ -11,6 +10,7 @@ def calcShannoEnt(dataSet):
         if currentLabel not in labelsCounts.keys():
             labelsCounts[currentLabel] = 0
         labelsCounts[currentLabel] += 1
+    print labelsCounts
     shannoEnt = 0
     for key in labelsCounts:
         prob = float(labelsCounts[key])/numEntries
@@ -104,9 +104,9 @@ def grapTree(filename):
     fr = open(filename)
     return pickle.load(fr)
 
-# fr = open('lenses.txt')
-# labels = ['age', 'prescript', 'astigmatic', 'tearRate']
-# lenses = [inst.strip().split('\t') for inst in fr.readlines()]
-# print lenses
-# myTree = createTree(lenses, labels)
-# print myTree
+fr = open('lenses.txt')
+labels = ['age', 'prescript', 'astigmatic', 'tearRate']
+lenses = [inst.strip().split('\t') for inst in fr.readlines()]
+print lenses
+myTree = createTree(lenses, labels)
+print myTree
