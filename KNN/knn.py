@@ -96,6 +96,13 @@ def handwriting():
     print "\nerror %d" % errCount
     print "rate %f" % (errCount/float(mTest))
 
+def createDataSet():
+    group = array([[1, 1.1],
+                   [1, 1],
+                   [0, 0],
+                   [0, 0.1]])
+    labels = ['A', 'A', 'B', 'B']
+    return group, labels
 
 # handwriting()
 # m=1934, mTest=946

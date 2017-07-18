@@ -17,7 +17,7 @@ def calcShannoEnt(dataSet):
 
 def createDataSet():
     dataSet = [[1, 1, 'yes'],
-               [1, 0, 'yes'],
+               [1, 1, 'yes'],
                [0, 1, 'no'],
                [0, 1, 'no'],
                [0, 1, 'no']]
@@ -32,7 +32,6 @@ def splitDataSet(dataSet, axis, value):
             reducedFeatvec.extend(featVec[axis+1:])
             retDataSet.append(reducedFeatvec)
     return retDataSet
-
 
 def chooseBestFeatureToSplit(dataSet):
     numFeatures = len(dataSet[0]) - 1
@@ -59,6 +58,7 @@ def majorityCnt(classList):
             classCount[vote] = 0
         classCount[vote] += 1
     sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
+    print sortedClassCount
     return sortedClassCount[0][0]
 
 def createTree(dataSet, labels):
@@ -79,14 +79,10 @@ def createTree(dataSet, labels):
     return myTree
 
 dataSet, labels = createDataSet()
-
 print createTree(dataSet, labels)
 
-# print splitDataSet(dataSet, 0, 0)
-
-
-
-
-
-
+# data = [example[0] for example in dataSet]
+# print data
+# print set(data)
+# print splitDataSet(dataSet, 0, 1)
 
