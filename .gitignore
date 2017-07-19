@@ -1,3 +1,4 @@
-*.pyc
+./*/*.pyc
 *.iml
-.idea/*
+.idea
+.DS_Store
