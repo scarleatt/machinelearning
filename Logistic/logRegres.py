@@ -12,19 +12,6 @@ def loadDataSet():
 def sigmoid(inX):
     return 1.0 / (1 + exp(-inX))
 
-def gradAscent(dataMatIn, classLabels):
-    dataMat = mat(dataMatIn)
-    labelMat = mat(classLabels).transpose()
-    m, n = shape(dataMat)
-    alpha = 0.001
-    maxCycles = 500
-    weights = ones((n, 1))
-    for k in range(maxCycles):
-        h = sigmoid(dataMat * weights)
-        error = (labelMat - h)
-        weights = weights + alpha * dataMat.transpose() * error
-    return weights
-
 def plotBestFit(weights):
     import matplotlib.pyplot as plt
     dataMat, labelMat = loadDataSet()
@@ -46,6 +33,19 @@ def plotBestFit(weights):
     ax.plot(x, y)
     plt.xlabel('X1'); plt.ylabel('X2')
     plt.show()
+
+def gradAscent(dataMatIn, classLabels):
+    dataMat = mat(dataMatIn)
+    labelMat = mat(classLabels).transpose()
+    m, n = shape(dataMat)
+    alpha = 0.001
+    maxCycles = 500
+    weights = ones((n, 1))
+    for k in range(maxCycles):
+        h = sigmoid(dataMat * weights)
+        error = (labelMat - h)
+        weights = weights + alpha * dataMat.transpose() * error
+    return weights
 
 # random gradient
 def stocGradAscent0(dataMat, classLabels):
@@ -72,10 +72,9 @@ def stocGradAxcent1(dataMat, classLabels, numIter=150):
             del(dataIndex[randIndex])
     return weights
 
-
 dataMat, labelMat = loadDataSet()
 print gradAscent(dataMat, labelMat)
 print stocGradAscent0(array(dataMat), labelMat)
-weights = stocGradAxcent1(array(dataMat), labelMat)
+weights = stocGradAxcent1(array(dataMat), labelMat, 500)
 print weights
 plotBestFit(weights)
