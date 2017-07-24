@@ -71,9 +71,9 @@ def plotBestFit(dataMat, labelMat, alphas, b):
     xcord1 = []; ycord1 = []
     xcord2 = []; ycord2 = []
     sxcord = []; sycord = []
-    womiga = []
+    w = 0
     for i in range(n):
-        womiga.append(alphas[i]*dataArr[i, 0]*dataArr[i, 1])
+        w += alphas[i]*dataArr[i, 0]*dataArr[i, 1]
         if int(labelMat[i]) > 0:
             if alphas[i]>0:
                 sxcord.append(dataArr[i, 0]); sycord.append(dataArr[i, 1])
@@ -88,36 +88,184 @@ def plotBestFit(dataMat, labelMat, alphas, b):
     ax = fig.add_subplot(111)
     ax.scatter(xcord1, ycord1, s=30, c='red', marker='s')
     ax.scatter(xcord2, ycord2, s=30, c='green')
-    ax.scatter(sxcord, sycord, s=40, c='color')
-    womiga = mat(womiga).transpose()
-    x = range[-2, 12, 0.1]
-    y = multiply(womiga, x)+b
-    ax.plot(x, y)
+    ax.scatter(sxcord, sycord, s=40, c='yellow')
+    w = calcWs(alphas, dataArr, labelMat)
+    x = arange(-2, 12, 0.1)
+    y = w*x + b
+    ax.plot(x, y[0])
     plt.show()
 
+class optStruct:
+    def __init__(self, dataMatIn, classLabels, C, toler):
+        self.X = dataMatIn
+        self.labelMat = classLabels
+        self.C = C
+        self.tol = toler
+        self.m = shape(dataMatIn)[0]
+        self.alphas = mat(zeros((self.m, 1)))
+        self.b = 0
+        self.eCathe = mat(zeros((self.m, 2)))
 
+def calcEk(oS, k):
+    fXk = float(multiply(oS.alphas, oS.labelMat).T * (oS.X*oS.X[k, :].T)) + oS.b
+    Ek = fXk - float(oS.labelMat[k])
+    return Ek
 
+def selectJ(i, oS, Ei):
+    maxK = -1; maxDeltaE = 0; Ej = 0
+    oS.eCathe[i] = [1, Ei]
+    validEcatheList = nonzero(oS.eCathe[:, 0].A)[0]
+    if (len(validEcatheList)) > 1:
+        for k in validEcatheList:
+            if k == i: continue
+            EK = calcEk(oS, k)
+            deltaE = abs(Ei - EK)
+            if (deltaE > maxDeltaE):
+                maxK = k; maxDeltaE = deltaE; Ej = EK
+        return maxK, Ej
+    else:
+        j = selectJrand(i, oS.m)
+        Ej = calcEk(oS, j)
+    return j, Ej
 
+def updateEk(oS, k):
+    Ek = calcEk(oS, k)
+    oS.eCathe[k] = [1, Ek]
 
+def innerL(i, oS):
+    Ei = calcEk(oS, i)
+    if ((oS.labelMat[i]*Ei < -oS.tol) and (oS.alphas[i] < oS.C)) or ((oS.labelMat[i]*Ei > oS.tol) and (oS.alphas[i] > 0)):
+        j, Ej = selectJ(i, oS, Ei)
+        alphaIold = oS.alphas[i].copy(); alphaJold = oS.alphas[j].copy()
+        if (oS.labelMat[i] != oS.labelMat[j]):
+            L = max(0, oS.alphas[j] - oS.alphas[i])
+            H = min(oS.C, oS.C + oS.alphas[j] - oS.alphas[i])
+        else:
+            L = max(0, oS.alphas[j] + oS.alphas[i] - oS.C)
+            H = min(oS.C, oS.alphas[j] + oS.alphas[i])
+        if L == H: print "L == H"; return 0
+        eta = 2.0 * oS.X[i, :]*oS.X[j, :].T - oS.X[i, :]*oS.X[i, :].T - oS.X[j, :]*oS.X[j, :].T
+        if eta >= 0: print "eta>=0"; return 0
+        oS.alphas[j] -= oS.labelMat[j]*(Ei-Ej)/eta
+        oS.alphas[j] = clipAlpha(oS.alphas[j], H, L)
+        updateEk(oS, j)
+        if (abs(oS.alphas[j] - alphaJold) < 0.00001):
+            print "j not moving enough"; return 0
+        oS.alphas[i] += oS.labelMat[j] * oS.labelMat[i]*(alphaJold-oS.alphas[j])
+        updateEk(oS, i)
+        b1 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[i, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[i, :]*oS.X[j, :].T
+        b2 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[j, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[j, :]*oS.X[j, :].T
+        if (0 < oS.alphas[i]) and (oS.C > oS.alphas[i]): oS.b = b1
+        elif (0 < oS.alphas[j]) and (oS.C > oS.alphas[j]): oS.b = b2
+        else: oS.b = (b1+b2) / 2.0
+        return 1
+    else: return 0
 
+def smoP(dataMatIn, classLabels, C, toler, maxIter, kTup=('lin', 0)):
+    oS = optStruct(mat(dataMatIn), mat(classLabels).transpose(), C, toler)
+    iter = 0
+    entireSet = True; alphaPairsChanged = 0
+    while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):
+        alphaPairsChanged = 0
+        if entireSet:
+            for i in range(oS.m):
+                alphaPairsChanged += innerL(i, oS)
+                print "fullSet, iter: %d i: %d, pairs changed %d" % (iter, i, alphaPairsChanged)
+                iter += 1
+        else:
+            nonBounds = nonzero((oS.alphas.A > 0) * (oS.alphas.A < 0))[0]
+            for i in nonBounds:
+                alphaPairsChanged += innerL(i, oS)
+                print "non-bound, iter: %d, i: %d, pairs change %d" % (iter, i, alphaPairsChanged)
+                iter += 1
+        if entireSet: entireSet = False
+        elif (alphaPairsChanged == 0): entireSet = True
+        print "iteration number: %d" % iter
+    return oS.b, oS.alphas
 
+def calcWs(alphas, dataArr, classLabels):
+    X = mat(dataArr); labelMat = mat(classLabels).transpose()
+    m, n = shape(X)
+    w = zeros((n, 1))
+    for i in range(m):
+        w += multiply(alphas[i]*labelMat[i], X[i, :].T)
+    return w
 
+def plotBestFit(dataMat, labelMat, alphas, b):
+    import matplotlib.pyplot as plt
+    dataArr = array(dataMat)
+    n = shape(dataArr)[0]
+    xcord1 = []; ycord1 = []
+    xcord2 = []; ycord2 = []
+    sxcord = []; sycord = []
+    w = 0
+    for i in range(n):
+        w += alphas[i]*dataArr[i, 0]*dataArr[i, 1]
+        if int(labelMat[i]) > 0:
+            if alphas[i]>0:
+                sxcord.append(dataArr[i, 0]); sycord.append(dataArr[i, 1])
+                continue
+            xcord1.append(dataArr[i, 0]); ycord1.append(dataArr[i, 1])
+        elif int(labelMat[i]) < 0:
+            if alphas[i]>0:
+                sxcord.append(dataArr[i, 0]); sycord.append(dataArr[i, 1])
+                continue
+            xcord2.append(dataArr[i, 0]); ycord2.append(dataArr[i, 1])
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.scatter(xcord1, ycord1, s=30, c='red', marker='s')
+    ax.scatter(xcord2, ycord2, s=30, c='green')
+    ax.scatter(sxcord, sycord, s=40, c='yellow')
+    w = calcWs(alphas, dataArr, labelMat)
+    w = w.transpose()
+    x = arange(-2, 12, 0.1)
+    y = w*dataArr + b
+    # print w, shape(x), shape(y)
+    # print len(y[0]), len(y[1])
+    # print x, y[0]
+    ax.plot()
+    plt.show()
 
-    # dataMat = []
-    # labelMat = []
-    # for i in range(len(dataArr)):
-    #     if (alphas[i] > 0):
-    #         dataMat.append(dataArr[i])
-    #         labelMat.append(labelArr[i])
+def kernalTrans(X, A, kTup):
+    m, n = shape(X)
+    K = mat(zeros((m, 1)))
+    if kTup[0] == 'lin': K = X * A.T
+    elif kTup[0] == 'rbf':
+        for j in range(m):
+            deltaRow = X[j, :] - A
+            K[j] = deltaRow*deltaRow.T
+        K = exp(K / (-1*kTup[1]**2))
+    else: raise NameError('Houston We Have a Problem -- That Kernal is not recognized')
+    return K
 
-
+class optStruct:
+    def __init__(self, dataMatIn, classLabels, C, toler, kTup):
+        self.X = dataMatIn
+        self.labelMat = classLabels
+        self.C = C
+        self.tol = toler
+        self.m = shape(dataMatIn)[0]
+        self.alphas = mat(zeros((self.m, 1)))
+        self.b = 0
+        self.eCathe = mat(zeros((self.m, 2)))
+        self.K = mat(zeros((self.m, self.m)))
+        for i in range(self.m):
+            self.K[i, :] = kernalTrans(self.X, self.X[i, :], kTup)
 
 dataArr, labelArr = loadDataSet('testSet.txt')
-b, alphas = smoSimple(dataArr, labelArr, 0.6, 0.001, 40)
-# b = -3.83770979
-# alphas = [ 0.13479885, 0.21636047, 0.01726106, 0.36842038]
-# for i in range(100):
-#     if alphas[i]>0: print dataArr[i], labelArr[i]
-plotBestFit(dataArr, labelArr, alphas, b)
+b, alphas = smoP(dataArr, labelArr, 0.6, 0.001, 40)
 
-# print array(dataArr)[0][0]
+# print b, alphas
+# print calcWs(alphas, dataArr, labelArr)
+
+# plotBestFit(dataArr, labelArr, alphas, b)
+
+
+
+
+
+
+
+
+
+
