@@ -64,51 +64,22 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
         print "iteration number: %d" % iter
     return b, alphas
 
-def plotBestFit(dataMat, labelMat, alphas, b):
-    import matplotlib.pyplot as plt
-    dataArr = array(dataMat)
-    n = shape(dataArr)[0]
-    xcord1 = []; ycord1 = []
-    xcord2 = []; ycord2 = []
-    sxcord = []; sycord = []
-    w = 0
-    for i in range(n):
-        w += alphas[i]*dataArr[i, 0]*dataArr[i, 1]
-        if int(labelMat[i]) > 0:
-            if alphas[i]>0:
-                sxcord.append(dataArr[i, 0]); sycord.append(dataArr[i, 1])
-                continue
-            xcord1.append(dataArr[i, 0]); ycord1.append(dataArr[i, 1])
-        elif int(labelMat[i]) < 0:
-            if alphas[i]>0:
-                sxcord.append(dataArr[i, 0]); sycord.append(dataArr[i, 1])
-                continue
-            xcord2.append(dataArr[i, 0]); ycord2.append(dataArr[i, 1])
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.scatter(xcord1, ycord1, s=30, c='red', marker='s')
-    ax.scatter(xcord2, ycord2, s=30, c='green')
-    ax.scatter(sxcord, sycord, s=40, c='yellow')
-    w = calcWs(alphas, dataArr, labelMat)
-    x = arange(-2, 12, 0.1)
-    y = w*x + b
-    ax.plot(x, y[0])
-    plt.show()
-
-class optStruct:
-    def __init__(self, dataMatIn, classLabels, C, toler):
-        self.X = dataMatIn
-        self.labelMat = classLabels
-        self.C = C
-        self.tol = toler
-        self.m = shape(dataMatIn)[0]
-        self.alphas = mat(zeros((self.m, 1)))
-        self.b = 0
-        self.eCathe = mat(zeros((self.m, 2)))
+# class optStruct:
+#     def __init__(self, dataMatIn, classLabels, C, toler):
+#         self.X = dataMatIn
+#         self.labelMat = classLabels
+#         self.C = C
+#         self.tol = toler
+#         self.m = shape(dataMatIn)[0]
+#         self.alphas = mat(zeros((self.m, 1)))
+#         self.b = 0
+#         self.eCathe = mat(zeros((self.m, 2)))
 
 def calcEk(oS, k):
     fXk = float(multiply(oS.alphas, oS.labelMat).T * (oS.X*oS.X[k, :].T)) + oS.b
     Ek = fXk - float(oS.labelMat[k])
+    # fXk = float(multiply(oS.alphas, oS.labelMat).T * oS.K[:, k] + oS.b)
+    # Ek = fXk - float(oS.labelMat[k])
     return Ek
 
 def selectJ(i, oS, Ei):
@@ -145,6 +116,7 @@ def innerL(i, oS):
             H = min(oS.C, oS.alphas[j] + oS.alphas[i])
         if L == H: print "L == H"; return 0
         eta = 2.0 * oS.X[i, :]*oS.X[j, :].T - oS.X[i, :]*oS.X[i, :].T - oS.X[j, :]*oS.X[j, :].T
+        # eta = 2.0 * oS.K[i, j] - oS.K[i, i] - oS.K[j, j]
         if eta >= 0: print "eta>=0"; return 0
         oS.alphas[j] -= oS.labelMat[j]*(Ei-Ej)/eta
         oS.alphas[j] = clipAlpha(oS.alphas[j], H, L)
@@ -153,8 +125,10 @@ def innerL(i, oS):
             print "j not moving enough"; return 0
         oS.alphas[i] += oS.labelMat[j] * oS.labelMat[i]*(alphaJold-oS.alphas[j])
         updateEk(oS, i)
-        b1 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[i, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[i, :]*oS.X[j, :].T
         b2 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[j, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[j, :]*oS.X[j, :].T
+        b1 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[i, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[i, :]*oS.X[j, :].T
+        # b2 = oS.b - Ej - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i, i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i, j]
+        # b1 = oS.b - Ej - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i, j] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[j, j]
         if (0 < oS.alphas[i]) and (oS.C > oS.alphas[i]): oS.b = b1
         elif (0 < oS.alphas[j]) and (oS.C > oS.alphas[j]): oS.b = b2
         else: oS.b = (b1+b2) / 2.0
@@ -162,7 +136,7 @@ def innerL(i, oS):
     else: return 0
 
 def smoP(dataMatIn, classLabels, C, toler, maxIter, kTup=('lin', 0)):
-    oS = optStruct(mat(dataMatIn), mat(classLabels).transpose(), C, toler)
+    oS = optStruct(mat(dataMatIn), mat(classLabels).transpose(), C, toler, kTup=('lin', 0))
     iter = 0
     entireSet = True; alphaPairsChanged = 0
     while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):
@@ -219,11 +193,8 @@ def plotBestFit(dataMat, labelMat, alphas, b):
     w = calcWs(alphas, dataArr, labelMat)
     w = w.transpose()
     x = arange(-2, 12, 0.1)
-    y = w*dataArr + b
-    # print w, shape(x), shape(y)
-    # print len(y[0]), len(y[1])
-    # print x, y[0]
-    ax.plot()
+    # y = dataMat*mat(w) + b
+    # ax.plot(x, y)
     plt.show()
 
 def kernalTrans(X, A, kTup):
@@ -250,22 +221,39 @@ class optStruct:
         self.eCathe = mat(zeros((self.m, 2)))
         self.K = mat(zeros((self.m, self.m)))
         for i in range(self.m):
-            self.K[i, :] = kernalTrans(self.X, self.X[i, :], kTup)
+            self.K[:, i] = kernalTrans(self.X, self.X[i, :], kTup)
+
+def testRbf(k1=1.3):
+    dataArr, labelArr = loadDataSet('testSetRBF.txt')
+    b, alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, ('rbf, k1'))
+    dataMat = mat(dataArr); labelMat = mat(labelArr).transpose()
+    svInd = nonzero(alphas.A > 0)
+    sVs = dataMat[svInd]
+    labelSV = labelMat[svInd]
+    print "there are %d Support Vector" % shape(sVs)[0]
+    m, n = shape(dataMat)
+    errCount = 0
+    for i in range(m):
+        kernalEval = kernalTrans(sVs, dataMat[i, :], ('rbf', k1))
+        predict = kernalEval.T * multiply(labelSV, alphas[svInd] + b)
+        if sign(predict) != sign(labelArr[i]): errCount += 1
+    print "the training error rate is: %f" % (float(errCount)/m)
+    dataArr, labelArr = loadDataSet('testSetRBF2.txt')
+    errCount = 0
+    dataMat = mat(dataArr); labelMat = mat(labelArr).transpose()
+    m, n = shape(dataMat)
+    for i in range(m):
+        kernalEval = kernalTrans(sVs, dataMat[i, :], ('rbf', k1))
+        predict = kernalEval.T * multiply(labelSV, alphas[svInd] + b)
+        if sign(predict) != sign(labelArr[i]): errCount += 1
+    print "the training error rate is: %f" % (float(errCount)/m)
+
+# testRbf()
 
 dataArr, labelArr = loadDataSet('testSet.txt')
 b, alphas = smoP(dataArr, labelArr, 0.6, 0.001, 40)
-
-# print b, alphas
-# print calcWs(alphas, dataArr, labelArr)
-
+print b, alphas
+w = calcWs(alphas, dataArr, labelArr)
+print w
+# print dataArr*mat(w) + b
 # plotBestFit(dataArr, labelArr, alphas, b)
-
-
-
-
-
-
-
-
-
-
