@@ -1,13 +1,13 @@
 from numpy import *
 
-def loadDataSet(filename):
+def loadDataSet(fileName):
     dataMat = []; labelMat = []
-    fr = open(filename)
+    fr = open(fileName)
     for line in fr.readlines():
         lineArr = line.strip().split('\t')
         dataMat.append([float(lineArr[0]), float(lineArr[1])])
         labelMat.append(float(lineArr[2]))
-    return dataMat, labelMat
+    return dataMat,labelMat
 
 def selectJrand(i, m):
     j = i
@@ -64,35 +64,24 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
         print "iteration number: %d" % iter
     return b, alphas
 
-# class optStruct:
-#     def __init__(self, dataMatIn, classLabels, C, toler):
-#         self.X = dataMatIn
-#         self.labelMat = classLabels
-#         self.C = C
-#         self.tol = toler
-#         self.m = shape(dataMatIn)[0]
-#         self.alphas = mat(zeros((self.m, 1)))
-#         self.b = 0
-#         self.eCathe = mat(zeros((self.m, 2)))
-
 def calcEk(oS, k):
-    fXk = float(multiply(oS.alphas, oS.labelMat).T * (oS.X*oS.X[k, :].T)) + oS.b
-    Ek = fXk - float(oS.labelMat[k])
-    # fXk = float(multiply(oS.alphas, oS.labelMat).T * oS.K[:, k] + oS.b)
+    # fXk = float(multiply(oS.alphas, oS.labelMat).T * (oS.X*oS.X[k, :].T)) + oS.b
     # Ek = fXk - float(oS.labelMat[k])
+    fXk = float(multiply(oS.alphas, oS.labelMat).T * oS.K[:, k] + oS.b)
+    Ek = fXk - float(oS.labelMat[k])
     return Ek
 
 def selectJ(i, oS, Ei):
     maxK = -1; maxDeltaE = 0; Ej = 0
-    oS.eCathe[i] = [1, Ei]
-    validEcatheList = nonzero(oS.eCathe[:, 0].A)[0]
-    if (len(validEcatheList)) > 1:
-        for k in validEcatheList:
+    oS.eCache[i] = [1,Ei]
+    validEcacheList = nonzero(oS.eCache[:,0].A)[0]
+    if (len(validEcacheList)) > 1:
+        for k in validEcacheList:
             if k == i: continue
-            EK = calcEk(oS, k)
-            deltaE = abs(Ei - EK)
+            Ek = calcEk(oS, k)
+            deltaE = abs(Ei - Ek)
             if (deltaE > maxDeltaE):
-                maxK = k; maxDeltaE = deltaE; Ej = EK
+                maxK = k; maxDeltaE = deltaE; Ej = Ek
         return maxK, Ej
     else:
         j = selectJrand(i, oS.m)
@@ -101,7 +90,7 @@ def selectJ(i, oS, Ei):
 
 def updateEk(oS, k):
     Ek = calcEk(oS, k)
-    oS.eCathe[k] = [1, Ek]
+    oS.eCache[k] = [1, Ek]
 
 def innerL(i, oS):
     Ei = calcEk(oS, i)
@@ -115,8 +104,8 @@ def innerL(i, oS):
             L = max(0, oS.alphas[j] + oS.alphas[i] - oS.C)
             H = min(oS.C, oS.alphas[j] + oS.alphas[i])
         if L == H: print "L == H"; return 0
-        eta = 2.0 * oS.X[i, :]*oS.X[j, :].T - oS.X[i, :]*oS.X[i, :].T - oS.X[j, :]*oS.X[j, :].T
-        # eta = 2.0 * oS.K[i, j] - oS.K[i, i] - oS.K[j, j]
+        # eta = 2.0 * oS.X[i, :]*oS.X[j, :].T - oS.X[i, :]*oS.X[i, :].T - oS.X[j, :]*oS.X[j, :].T
+        eta = 2.0 * oS.K[i, j] - oS.K[i, i] - oS.K[j, j]
         if eta >= 0: print "eta>=0"; return 0
         oS.alphas[j] -= oS.labelMat[j]*(Ei-Ej)/eta
         oS.alphas[j] = clipAlpha(oS.alphas[j], H, L)
@@ -125,10 +114,10 @@ def innerL(i, oS):
             print "j not moving enough"; return 0
         oS.alphas[i] += oS.labelMat[j] * oS.labelMat[i]*(alphaJold-oS.alphas[j])
         updateEk(oS, i)
-        b2 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[j, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[j, :]*oS.X[j, :].T
-        b1 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[i, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[i, :]*oS.X[j, :].T
-        # b2 = oS.b - Ej - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i, i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i, j]
-        # b1 = oS.b - Ej - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i, j] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[j, j]
+        # b2 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[j, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[j, :]*oS.X[j, :].T
+        # b1 = oS.b - Ei - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.X[i, :]*oS.X[i, :].T - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.X[i, :]*oS.X[j, :].T
+        b2 = oS.b - Ej - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i, i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i, j]
+        b1 = oS.b - Ej - oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i, j] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[j, j]
         if (0 < oS.alphas[i]) and (oS.C > oS.alphas[i]): oS.b = b1
         elif (0 < oS.alphas[j]) and (oS.C > oS.alphas[j]): oS.b = b2
         else: oS.b = (b1+b2) / 2.0
@@ -136,7 +125,7 @@ def innerL(i, oS):
     else: return 0
 
 def smoP(dataMatIn, classLabels, C, toler, maxIter, kTup=('lin', 0)):
-    oS = optStruct(mat(dataMatIn), mat(classLabels).transpose(), C, toler, kTup=('lin', 0))
+    oS = optStruct(mat(dataMatIn), mat(classLabels).transpose(), C, toler, kTup)
     iter = 0
     entireSet = True; alphaPairsChanged = 0
     while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):
@@ -145,13 +134,13 @@ def smoP(dataMatIn, classLabels, C, toler, maxIter, kTup=('lin', 0)):
             for i in range(oS.m):
                 alphaPairsChanged += innerL(i, oS)
                 print "fullSet, iter: %d i: %d, pairs changed %d" % (iter, i, alphaPairsChanged)
-                iter += 1
+            iter += 1
         else:
             nonBounds = nonzero((oS.alphas.A > 0) * (oS.alphas.A < 0))[0]
             for i in nonBounds:
                 alphaPairsChanged += innerL(i, oS)
                 print "non-bound, iter: %d, i: %d, pairs change %d" % (iter, i, alphaPairsChanged)
-                iter += 1
+            iter += 1
         if entireSet: entireSet = False
         elif (alphaPairsChanged == 0): entireSet = True
         print "iteration number: %d" % iter
@@ -197,7 +186,7 @@ def plotBestFit(dataMat, labelMat, alphas, b):
     # ax.plot(x, y)
     plt.show()
 
-def kernalTrans(X, A, kTup):
+def kernelTrans(X, A, kTup):
     m, n = shape(X)
     K = mat(zeros((m, 1)))
     if kTup[0] == 'lin': K = X * A.T
@@ -206,7 +195,7 @@ def kernalTrans(X, A, kTup):
             deltaRow = X[j, :] - A
             K[j] = deltaRow*deltaRow.T
         K = exp(K / (-1*kTup[1]**2))
-    else: raise NameError('Houston We Have a Problem -- That Kernal is not recognized')
+    else: raise NameError('Houston We Have a Problem -- That Kernel is not recognized')
     return K
 
 class optStruct:
@@ -218,10 +207,10 @@ class optStruct:
         self.m = shape(dataMatIn)[0]
         self.alphas = mat(zeros((self.m, 1)))
         self.b = 0
-        self.eCathe = mat(zeros((self.m, 2)))
+        self.eCache = mat(zeros((self.m, 2)))
         self.K = mat(zeros((self.m, self.m)))
         for i in range(self.m):
-            self.K[:, i] = kernalTrans(self.X, self.X[i, :], kTup)
+            self.K[:, i] = kernelTrans(self.X, self.X[i, :], kTup)
 
 def testRbf(k1=1.3):
     dataArr, labelArr = loadDataSet('testSetRBF.txt')
@@ -234,8 +223,8 @@ def testRbf(k1=1.3):
     m, n = shape(dataMat)
     errCount = 0
     for i in range(m):
-        kernalEval = kernalTrans(sVs, dataMat[i, :], ('rbf', k1))
-        predict = kernalEval.T * multiply(labelSV, alphas[svInd] + b)
+        kernelEval = kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+        predict = kernelEval.T * multiply(labelSV, alphas[svInd] + b)
         if sign(predict) != sign(labelArr[i]): errCount += 1
     print "the training error rate is: %f" % (float(errCount)/m)
     dataArr, labelArr = loadDataSet('testSetRBF2.txt')
@@ -243,17 +232,15 @@ def testRbf(k1=1.3):
     dataMat = mat(dataArr); labelMat = mat(labelArr).transpose()
     m, n = shape(dataMat)
     for i in range(m):
-        kernalEval = kernalTrans(sVs, dataMat[i, :], ('rbf', k1))
-        predict = kernalEval.T * multiply(labelSV, alphas[svInd] + b)
+        kernelEval = kernelTrans(sVs, dataMat[i, :], ('rbf', k1))
+        predict = kernelEval.T * multiply(labelSV, alphas[svInd] + b)
         if sign(predict) != sign(labelArr[i]): errCount += 1
     print "the training error rate is: %f" % (float(errCount)/m)
 
-# testRbf()
+testRbf()
 
-dataArr, labelArr = loadDataSet('testSet.txt')
-b, alphas = smoP(dataArr, labelArr, 0.6, 0.001, 40)
-print b, alphas
-w = calcWs(alphas, dataArr, labelArr)
-print w
-# print dataArr*mat(w) + b
-# plotBestFit(dataArr, labelArr, alphas, b)
+# dataArr, labelArr = loadDataSet('testSet.txt')
+# b, alphas = smoP(dataArr, labelArr, 0.6, 0.001, 40)
+# print b, alphas
+# w = calcWs(alphas, dataArr, labelArr)
+# print w
