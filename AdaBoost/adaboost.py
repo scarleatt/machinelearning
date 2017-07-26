@@ -10,7 +10,7 @@ def loadSimpData():
     classLabels = [1.0, 1.0, -1.0, -1.0, 1.0]
     return dataMat, classLabels
 
-def plot(dataMat, labelMat):
+def plotDot(dataMat, labelMat):
     dataArr = array(dataMat)
     n = shape(dataArr)[0]
     xcord1 = []; ycord1 = []
@@ -50,7 +50,7 @@ def buildStump(dataArr, classLabels, D):
                 errArr = mat(ones((m, 1)))
                 errArr[predictedVals == labelMat] = 0
                 weightedError = D.T * errArr
-                print "split: dim %d, thresh %.2f, thresh inequal: %s, the weighted error is %.3f" % (i, threshVal, inequal, weightedError)
+                # print "split: dim %d, thresh %.2f, thresh inequal: %s, the weighted error is %.3f" % (i, threshVal, inequal, weightedError)
                 if weightedError < minError:
                     minError = weightedError
                     bestClasEst = predictedVals.copy()
@@ -80,10 +80,56 @@ def adaBoostTrainDS(dataArr, classLabels, numIt=40):
         errRate = aggErrors.sum()/m
         print "total error: ", errRate, "\n"
         if errRate == 0.0: break
-    return weakClassArr
+    return weakClassArr, aggClassEst
 
-dataMat, classLabels = loadSimpData()
-# plot(dataMat, classLabels)
-D = mat(ones((5, 1))/5)
-# print
-print adaBoostTrainDS(dataMat, classLabels, 9)
+def adaClassify(datToClass, classifierArr):
+    dataMat = mat(datToClass)
+    m = shape(dataMat)[0]
+    aggClassEst = mat(zeros((m, 1)))
+    for i in range(len(classifierArr)):
+        classEst = stumpClassify(dataMat, classifierArr[i]['dim'],
+                                 classifierArr[i]['thresh'],
+                                 classifierArr[i]['ineq'])
+        aggClassEst += classifierArr[i]['alpha']*classEst
+        print aggClassEst
+    return sign(aggClassEst)
+
+def loadDataSet(fileName):
+    numFeat = len(open(fileName).readline().split('\t'))
+    dataMat = []; labelMat = []
+    fr = open(fileName)
+    for line in fr.readlines():
+        lineArr = []
+        curLine = line.strip().split('\t')
+        for i in range(numFeat - 1):
+            lineArr.append(float(curLine[i]))
+        dataMat.append(lineArr)
+        labelMat.append(float(curLine[-1]))
+    return dataMat, labelMat
+
+def plotROC(predStrengths, classLabels):
+    import matplotlib.pyplot as plt
+    cur = (1.0,1.0) #cursor
+    ySum = 0.0 #variable to calculate AUC
+    numPosClas = sum(array(classLabels)==1.0)
+    print numPosClas
+    yStep = 1/float(numPosClas); xStep = 1/float(len(classLabels)-numPosClas)
+    sortedIndicies = predStrengths.argsort() #get sorted index, it's reverse
+    fig = plt.figure()
+    fig.clf()
+    ax = plt.subplot(111)
+    #loop through all the values, drawing a line segment at each point
+    for index in sortedIndicies.tolist()[0]:
+        if classLabels[index] == 1.0:
+            delX = 0; delY = yStep;
+        else:
+            delX = xStep; delY = 0;
+            ySum += cur[1]
+        ax.plot([cur[0],cur[0]-delX],[cur[1],cur[1]-delY], c='b')
+        cur = (cur[0]-delX,cur[1]-delY)
+    ax.plot([0,1],[0,1],'b--')
+    plt.xlabel('False positive rate'); plt.ylabel('True positive rate')
+    plt.title('ROC curve for AdaBoost horse colic detection system')
+    ax.axis([0,1,0,1])
+    plt.show()
+    print "the Area Under the Curve is: ", ySum*xStep
