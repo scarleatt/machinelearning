@@ -103,7 +103,6 @@ def stageWise(xArr, yArr, eps=0.01, numIt=100):
         returnMat[i, :] = ws.T
     return returnMat
 
-
 def searchForSet(retX, retY, setNum, yr, numPce, origPrc):
     sleep(10)
     myAPIstr = 'AIzaSyAxcS7LR48sNmgwzhd0rNOnZ4tpqTdMwFo'

@@ -1,4 +1,5 @@
 from numpy import *
+import matplotlib.pyplot as plt
 
 def loadDataSet():
     dataMat = []; labelMat = []
@@ -13,7 +14,6 @@ def sigmoid(inX):
     return 1.0 / (1 + exp(-inX))
 
 def plotBestFit(weights):
-    import matplotlib.pyplot as plt
     dataMat, labelMat = loadDataSet()
     dataArr = array(dataMat)
     n = shape(dataArr)[0]
