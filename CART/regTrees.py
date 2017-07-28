@@ -128,7 +128,7 @@ def createForeCast(tree, testData, modelEval=regTreeEval):
     yHat = mat(zeros((m, 1)))
     for i in range(m):
         yHat[i, 0] = treeForeCast(tree, mat(testData[i]), modelEval)
-    return yHatß
+    return yHat
 # testMat = mat(eye(4))
 # print binSplitDataSet(testMat, 1, 0.5)
 
