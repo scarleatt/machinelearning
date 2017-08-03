@@ -1,10 +1,11 @@
 from numpy import *
+import matplotlib.pyplot as plt
 
 def loadDataSet(fileName):
     dataMat = []
     fr = open(fileName)
     for line in fr.readlines():
-        curLine = line.strip().split('\t')
+        curLine = line.strip().split(',')
         fltLine = map(float, curLine)
         dataMat.append(fltLine)
     return dataMat
@@ -101,3 +102,21 @@ def clusterClubs(numClust=5):
     ax1.scatter(myCentroids[:,0].flatten().A[0],
                 myCentroids[:,1].flatten().A[0], marker='+', s=300)
     plt.show()
+
+dataSet = loadDataSet('bj_gps_1k.txt')
+
+dataSet = mat(dataSet)
+m, n = shape(dataSet)
+xcord1 = [([0] * 2) for i in range(m)]; ycord1 = []
+for i in range(m):
+    xcord1[i][0] = dataSet[i, 4]
+    xcord1[i][1] = dataSet[i, 5]
+    ycord1.append(dataSet[i, 5])
+print xcord1
+# fig = plt.figure()
+# ax = fig.add_subplot(111)
+# ax.scatter(xcord1, ycord1, s=30)
+# plt.show()
+# print dataSet
+# print xcord1
+biKmeans(xcord1, 2, distMeans=distEculd)
