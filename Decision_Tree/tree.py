@@ -1,115 +1,78 @@
-from math import *
+import math
 from numpy import *
-import operator
 
-def calcShannoEnt(dataSet):
-    numEntries = len(dataSet)
-    labelsCounts = {}
-    for featVec in dataSet:
-        currentLabel = featVec[-1]
-        if currentLabel not in labelsCounts.keys():
-            labelsCounts[currentLabel] = 0
-        labelsCounts[currentLabel] += 1
-    print labelsCounts
-    shannoEnt = 0
-    for key in labelsCounts:
-        prob = float(labelsCounts[key])/numEntries
-        shannoEnt -= prob*log(prob, 2)
-    return shannoEnt
-
-def createDataSet():
-    dataSet = [[1, 1, 'yes'],
-               [1, 1, 'yes'],
-               [0, 1, 'no'],
-               [0, 1, 'no'],
-               [0, 1, 'no']]
-    labels = ['no surfacing', 'flippers']
-    return dataSet, labels
-
-dataSet, labels = createDataSet()
-calcShannoEnt(dataSet)
-
-def splitDataSet(dataSet, axis, value):
-    retDataSet = []
-    for featVec in dataSet:
-        if featVec[axis] == value:
-            reducedFeatvec = featVec[:axis]
-            reducedFeatvec.extend(featVec[axis+1:])
-            retDataSet.append(reducedFeatvec)
-    return retDataSet
-
-def chooseBestFeatureToSplit(dataSet):
-    numFeatures = len(dataSet[0]) - 1
-    baseEntropy = calcShannoEnt(dataSet)
-    bestInfoGain = 0.0; bestFeature = -1
-    for i in range(numFeatures):
-        featList = [example[i] for example in dataSet]
-        uniquevals = set(featList)
-        newEntropy = 0
-        for value in uniquevals:
-            subDataSet = splitDataSet(dataSet, i, value)
-            prob = len(subDataSet)/float(len(dataSet))
-            newEntropy += prob*calcShannoEnt(subDataSet)
-        infoGain = baseEntropy - newEntropy
-        if (infoGain > bestInfoGain):
-            bestInfoGain = infoGain
-            bestFeature = i
-    return bestFeature
-
-def majorityCnt(classList):
-    classCount = {}
-    for vote in classList:
-        if vote in classCount.keys():
-            classCount[vote] = 0
-        classCount[vote] += 1
-    sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
-    print sortedClassCount
-    return sortedClassCount[0][0]
-
-def createTree(dataSet, labels):
-    classList = [example[-1] for example in dataSet]
-    if classList.count(classList[0]) == len(classList):
-        return classList[0]
-    if len(dataSet[0]) == 1:
-        return majorityCnt(classList)
-    bestFeat = chooseBestFeatureToSplit(dataSet)
-    bestFeatLabel = labels[bestFeat]
-    myTree = {bestFeatLabel: {}}
-    del(labels[bestFeat])
-    featValues = [example[bestFeat] for example in dataSet]
-    uniqueVals = set(featValues)
-    for value in uniqueVals:
-        subLabels = labels[:]
-        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)
-    return myTree
-
-def classify(inputTree, featlabels, testVec):
-    firstStr = inputTree.keys()[0]
-    secondDict = inputTree[firstStr]
-    featIndex = featlabels.index(firstStr)
-    print featlabels, featIndex
-    for key in secondDict.keys():
-        print key
-        if testVec[featIndex] == key:
-            if type(secondDict[key]).__name__ == 'dict':
-                classLabel = classify(secondDict[key], featlabels, testVec)
-            else: classLabel = secondDict[key]
-    return classLabel
-
-def storeTree(inputTree, filename):
-    import pickle
-    fw = open(filename, 'w')
-    pickle.dump(inputTree, fw)
-    fw.close()
-
-def grapTree(filename):
-    import pickle
+def loadDataset(filename):
+    dataMat = []; labelMat = []
     fr = open(filename)
-    return pickle.load(fr)
+    for line in fr.readlines():
+        curLine = line.strip().split(',')
+        del(curLine[0])
+        labelMat.append(curLine[-1])
+        dataMat.append(curLine[0:-4])
+    del(dataMat[0]); del(labelMat[0])
+    return dataMat,labelMat
 
-# fr = open('lenses.txt')
-# labels = ['age', 'prescript', 'astigmatic', 'tearRate']
-# lenses = [inst.strip().split('\t') for inst in fr.readlines()]
-# print lenses
-# myTree = createTree(lenses, labels)
-# print myTree
+def ent(labelMat):
+    n = len(labelMat)
+    labelsCount = {}
+    h = 0.0
+    for i in range(n):
+        if labelMat[i] not in labelsCount:
+            labelsCount[labelMat[i]] = 0
+        labelsCount[labelMat[i]] += 1
+    for ck in labelsCount:
+        p = float(labelsCount[ck])/n
+        h -= p * math.log(p, 2)
+    return h
+
+def chooseBestFeature(dataMat, labelMat):
+    m, n = shape(dataMat)
+    entD = ent(labelMat)
+    maxIndex = 0
+    bestsplit = 0
+    features = {}
+    for i in range(n):
+        h = 0.0
+        featureIndexs = {}
+        for k in range(m):
+            temp = dataMat[k,i]
+            if temp not in featureIndexs:
+                featureIndexs[temp] = []
+            featureIndexs[temp].append(k)
+        for key in featureIndexs:
+            sublabel = []
+            for value in featureIndexs[key]:
+                sublabel.append(labelMat[value])
+            h -= float(len(featureIndexs[key]))/m * ent(sublabel)
+        # print entD+h
+        if entD+h > bestsplit:
+            bestsplit = entD+h
+            maxIndex = i
+            features = featureIndexs.copy()
+    return bestsplit, maxIndex, features
+
+def trees(dataMat, labelMat):
+    # if labelMat.count(labelMat[0]) == len(labelMat):
+    #     return labelMat[0]
+    # if len(dataMat[0]) == 1:
+    #     return labelMat[0]
+    bestsplit, maxIndex, featuresIndex = chooseBestFeature(dataMat, labelMat)
+    sublabel = []
+    mytree = {kinds[maxIndex]:{}}
+    print "___________________________________________________"
+    print featuresIndex
+    for key in featuresIndex:
+        temp = dataMat[featuresIndex[key]]
+        subdata = delete(temp, maxIndex, axis=1)
+        for i in featuresIndex[key]:
+            sublabel.append(labelMat[i])
+        mytree[kinds[maxIndex]][key] = trees(subdata, sublabel)
+        print mytree
+    return mytree
+
+dataMat, labelMat = loadDataset('watermelon3_0_En.csv')
+kinds = ['Color','Root','Knocks','Texture','Umbilicus','Touch']
+# print ent(labelMat)
+# print chooseBestFeature(dataMat, labelMat)
+print trees(mat(dataMat), labelMat)
+# print mat(dataMat)[:,1]

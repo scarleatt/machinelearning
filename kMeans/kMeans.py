@@ -47,3 +47,4 @@ dataMat = mat(dataSet)
 
 centroids, clusterAssment = kMeans(dataMat, 4)
 print centroids, clusterAssment
+m, n = shape(clusterAssment)
