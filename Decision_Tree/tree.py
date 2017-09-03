@@ -1,5 +1,6 @@
 import math
 from numpy import *
+import operator
 
 def loadDataset(filename):
     dataMat = []; labelMat = []
@@ -51,28 +52,32 @@ def chooseBestFeature(dataMat, labelMat):
             features = featureIndexs.copy()
     return bestsplit, maxIndex, features
 
+
 def trees(dataMat, labelMat):
-    # if labelMat.count(labelMat[0]) == len(labelMat):
-    #     return labelMat[0]
-    # if len(dataMat[0]) == 1:
-    #     return labelMat[0]
+    if labelMat.count(labelMat[0]) == len(labelMat):
+        return labelMat[0]
+    if shape(dataMat[0])[1] == 1:
+        labelCounts = {}
+        for vote in labelMat:
+            if vote not in labelCounts:
+                labelCounts[vote] = 0
+            labelCounts[vote] += 1
+        sortedClassCount = sorted(labelCounts.iteritems(), key=operator.itemgetter(1), reverse=True)
+        return sortedClassCount[0][0]
     bestsplit, maxIndex, featuresIndex = chooseBestFeature(dataMat, labelMat)
-    sublabel = []
-    mytree = {kinds[maxIndex]:{}}
-    print "___________________________________________________"
-    print featuresIndex
+    nowkind = kinds[maxIndex]
+    mytree = {nowkind: {}}
+    # del(kinds[maxIndex])
     for key in featuresIndex:
+        sublabel = []
         temp = dataMat[featuresIndex[key]]
         subdata = delete(temp, maxIndex, axis=1)
         for i in featuresIndex[key]:
             sublabel.append(labelMat[i])
-        mytree[kinds[maxIndex]][key] = trees(subdata, sublabel)
-        print mytree
+        mytree[nowkind][key] = trees(subdata, sublabel)
     return mytree
 
 dataMat, labelMat = loadDataset('watermelon3_0_En.csv')
 kinds = ['Color','Root','Knocks','Texture','Umbilicus','Touch']
-# print ent(labelMat)
-# print chooseBestFeature(dataMat, labelMat)
 print trees(mat(dataMat), labelMat)
-# print mat(dataMat)[:,1]
+
