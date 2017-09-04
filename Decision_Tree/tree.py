@@ -113,9 +113,9 @@ def listExtract(dataMat, list):
     return temp
 
 def trees(dataMat, classList):
-    # classList = ['Color', 'Root', 'Knocks', 'Texture', 'Umbilicus', 'Touch', 'Density', 'SugerRatio']
     labelMat = [example[-1] for example in dataMat]
     if labelMat.count(labelMat[0]) == len(labelMat):
+        print dataMat
         return labelMat[0]
     if shape(dataMat[0])[0] == 1:
         labelCounts = {}
@@ -138,11 +138,69 @@ def trees(dataMat, classList):
         mytree[nowkind][key] = trees(subdata, classList)
     return mytree
 
+def giniChooseBest(dataMat):
+    m, n = shape(dataMat)
+    labelMat = [example[-1] for example in dataMat]
+    maxIndex = 0
+    bestsplit = Inf
+    features = {}
+    for i in range(n-1):
+        bestsplit = Inf
+        print "----------------"
+        featureIndexs = {}
+        for k in range(m):
+            temp = dataMat[k][i]
+            if temp not in featureIndexs:
+                featureIndexs[temp] = []
+            featureIndexs[temp].append(k)
+        print featureIndexs
+        allkeys = featureIndexs.keys()
+
+
+
+        for key in featureIndexs:
+            sublabelCount = {}
+            for value in featureIndexs[key]:
+                curlable = labelMat[value]
+                if curlable not in sublabelCount:
+                    sublabelCount[curlable] = 0
+                sublabelCount[curlable] += 1
+
+
+
+            templabelcount = 0
+            for j in sublabelCount:
+                if sublabelCount[j] > templabelcount:
+                    templabelcount = sublabelCount[j]
+            templen = float(len(featureIndexs[key]))
+            gini = templen/m* 2* templabelcount/templen * (templen-templabelcount)/templen +\
+                   (m-templen)/m*2*templabelcount/(m-templen)*(templen-templabelcount)/(m-templen)
+            if bestsplit >  gini:
+                bestsplit = gini
+
+            print gini
+        print bestsplit
+
+
+
+    return bestsplit, maxIndex, features
+
+def getNumLeafs(myTree):
+    numLeafs = 0
+    firstStr = myTree.keys()[0]
+    secondDict = myTree[firstStr]
+    for key in secondDict.keys():
+        if type(secondDict[key]).__name__ == 'dict':
+            numLeafs += getNumLeafs(secondDict[key])
+        else:
+            numLeafs += 1
+    return numLeafs
+
+
 dataMat, kinds = loadDataset('watermelon3_0_En.csv')
 dataMat = continueNum(dataMat, -3)
 dataMat = continueNum(dataMat, -2)
-labelMat = [example[-1] for example in dataMat]
 
-classList = copy.deepcopy(kinds)
-
-print trees(dataMat, classList)
+myTree = trees(dataMat, kinds)
+print myTree
+print getNumLeafs(myTree)
