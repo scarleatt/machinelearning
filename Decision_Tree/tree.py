@@ -112,8 +112,8 @@ def listExtract(dataMat, list):
             temp.append(dataMat[i])
     return temp
 
-def trees(dataMat, kinds):
-    kinds = ['Color', 'Root', 'Knocks', 'Texture', 'Umbilicus', 'Touch', 'Density', 'SugerRatio']
+def trees(dataMat, classList):
+    # classList = ['Color', 'Root', 'Knocks', 'Texture', 'Umbilicus', 'Touch', 'Density', 'SugerRatio']
     labelMat = [example[-1] for example in dataMat]
     if labelMat.count(labelMat[0]) == len(labelMat):
         return labelMat[0]
@@ -126,19 +126,23 @@ def trees(dataMat, kinds):
         sortedClassCount = sorted(labelCounts.iteritems(), key=operator.itemgetter(1), reverse=True)
         return sortedClassCount[0][0]
     bestsplit, maxIndex, featuresIndex = chooseBestFeature(dataMat)
-    nowkind = copy.deepcopy(kinds[maxIndex])
+    nowkind = copy.deepcopy(classList[maxIndex])
     mytree = {nowkind: {}}
+    del(classList[maxIndex])
     for key in featuresIndex:
         sublabel = []
         temp = listExtract(dataMat, featuresIndex[key])
         subdata = delete(temp, maxIndex, axis=1)
         for i in featuresIndex[key]:
             sublabel.append(labelMat[i])
-        mytree[nowkind][key] = trees(subdata, sublabel)
+        mytree[nowkind][key] = trees(subdata, classList)
     return mytree
 
 dataMat, kinds = loadDataset('watermelon3_0_En.csv')
 dataMat = continueNum(dataMat, -3)
 dataMat = continueNum(dataMat, -2)
 labelMat = [example[-1] for example in dataMat]
-print trees(dataMat, kinds)
+
+classList = copy.deepcopy(kinds)
+
+print trees(dataMat, classList)
