@@ -7,3 +7,27 @@ http://archive.ics.uci.edu/ml/machine-learning-databases
 
 + backpropagation
     + [Principles of training multi-layer neural network using backpropagation](http://galaxy.agh.edu.pl/~vlsi/AI/backp_t_en/backprop.html)
+
+
+#### Useful Python Library
++ [theano](http://deeplearning.net/software/theano/)
+
++ [A simple toy dataset to visualize clustering and classification algorithms](http://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html)    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
